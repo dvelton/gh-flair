@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dvelton/gh-flair/internal/model"
@@ -13,9 +14,11 @@ import (
 
 const (
 	defaultTimeout   = 10 * time.Second
-	rateLimitWarnAt  = 100
+	rateLimitWarnAt  = 50
 	userAgent        = "gh-flair"
 )
+
+var rateLimitWarned sync.Once
 
 // Fetcher retrieves events for a set of repos since a given time.
 type Fetcher interface {
@@ -52,7 +55,7 @@ func readBody(resp *http.Response) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-// checkRateLimit logs a warning when remaining GitHub API calls are low.
+// checkRateLimit logs a warning (once) when remaining GitHub API calls are low.
 func checkRateLimit(resp *http.Response) {
 	remaining := resp.Header.Get("X-RateLimit-Remaining")
 	if remaining == "" {
@@ -60,7 +63,9 @@ func checkRateLimit(resp *http.Response) {
 	}
 	var n int
 	if _, err := fmt.Sscanf(remaining, "%d", &n); err == nil && n < rateLimitWarnAt {
-		log.Printf("warning: GitHub rate limit low — %d requests remaining", n)
+		rateLimitWarned.Do(func() {
+			log.Printf("warning: GitHub rate limit low — %d requests remaining", n)
+		})
 	}
 }
 
