@@ -2,7 +2,7 @@
 
 Your repos' highlight reel.
 
-A `gh` CLI extension that surfaces the good news from your open source projects — new stars, grateful users, first-time contributors, sponsor events, download milestones, and Hacker News mentions. The signals that make maintaining worth it, pulled out of the noise and presented when you open your terminal.
+A `gh` CLI extension that surfaces the good news from your open source projects — new stars, grateful users, first-time contributors, sponsor events, download milestones, and Hacker News mentions. 
 
 ## Getting Started
 
