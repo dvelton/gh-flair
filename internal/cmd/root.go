@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ import (
 var (
 	flagQuiet bool
 	flagRepo  string
+	flagSince string
 )
 
 var rootCmd = &cobra.Command{
@@ -32,6 +34,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().BoolVarP(&flagQuiet, "quiet", "q", false, "compact one-liner output")
 	rootCmd.Flags().StringVarP(&flagRepo, "repo", "r", "", "filter to a single repo (owner/name)")
+	rootCmd.Flags().StringVar(&flagSince, "since", "", "look back period: 7d, 30d, 90d, 1y (default: since last run, or 30d on first run)")
 
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(saveCmd)
@@ -68,8 +71,15 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get last session: %w", err)
 	}
 	var since time.Time
-	if lastSession == nil {
-		since = time.Now().Add(-24 * time.Hour)
+	if flagSince != "" {
+		d, err := parseDuration(flagSince)
+		if err != nil {
+			return fmt.Errorf("invalid --since value %q: %w", flagSince, err)
+		}
+		since = time.Now().Add(-d)
+	} else if lastSession == nil {
+		// First run: look back 30 days to give a rich initial experience
+		since = time.Now().Add(-30 * 24 * time.Hour)
 	} else {
 		since = lastSession.RanAt
 	}
@@ -302,4 +312,34 @@ func renderNothingNew(reel *model.HighlightReel) string {
 		msg += fmt.Sprintf(" — %d total stars across your repos", totalStars)
 	}
 	return msg + ". Keep shipping!"
+}
+
+func parseDuration(s string) (time.Duration, error) {
+	s = strings.TrimSpace(strings.ToLower(s))
+	if s == "" {
+		return 0, fmt.Errorf("empty duration")
+	}
+	suffix := s[len(s)-1:]
+	numStr := s[:len(s)-1]
+
+	n, err := strconv.Atoi(numStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid number %q", numStr)
+	}
+	if n <= 0 {
+		return 0, fmt.Errorf("duration must be positive")
+	}
+
+	switch suffix {
+	case "d":
+		return time.Duration(n) * 24 * time.Hour, nil
+	case "w":
+		return time.Duration(n) * 7 * 24 * time.Hour, nil
+	case "m":
+		return time.Duration(n) * 30 * 24 * time.Hour, nil
+	case "y":
+		return time.Duration(n) * 365 * 24 * time.Hour, nil
+	default:
+		return 0, fmt.Errorf("unknown suffix %q (use d, w, m, or y)", suffix)
+	}
 }
