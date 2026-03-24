@@ -50,7 +50,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("\nEnter numbers to track (comma-separated, e.g. 1,3,5): ")
+	fmt.Print("\nSelect repos to track.\n")
+	fmt.Print("  Enter: numbers (1,3,5), ranges (1-10), or 'all'\n")
+	fmt.Print("  > ")
 	line, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("read selection: %w", err)
@@ -61,16 +63,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	var selected []ghRepoItem
-	for _, part := range strings.Split(line, ",") {
-		part = strings.TrimSpace(part)
-		n, err := strconv.Atoi(part)
-		if err != nil || n < 1 || n > len(items) {
-			fmt.Printf("  Skipping invalid selection %q\n", part)
-			continue
-		}
-		selected = append(selected, items[n-1])
-	}
+	selected := parseSelection(line, items)
 	if len(selected) == 0 {
 		fmt.Println("No valid repos selected.")
 		return nil
@@ -140,4 +133,54 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("\nConfig saved. Run 'gh flair' to see your highlight reel.\n")
 	return nil
+}
+
+func parseSelection(input string, items []ghRepoItem) []ghRepoItem {
+	lower := strings.ToLower(strings.TrimSpace(input))
+	if lower == "all" {
+		return append([]ghRepoItem{}, items...)
+	}
+
+	seen := make(map[int]bool)
+	var selected []ghRepoItem
+
+	for _, part := range strings.Split(lower, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		// Check for range: "3-7"
+		if strings.Contains(part, "-") {
+			bounds := strings.SplitN(part, "-", 2)
+			lo, errLo := strconv.Atoi(strings.TrimSpace(bounds[0]))
+			hi, errHi := strconv.Atoi(strings.TrimSpace(bounds[1]))
+			if errLo != nil || errHi != nil {
+				fmt.Printf("  Skipping invalid range %q\n", part)
+				continue
+			}
+			if lo > hi {
+				lo, hi = hi, lo
+			}
+			for n := lo; n <= hi; n++ {
+				if n >= 1 && n <= len(items) && !seen[n] {
+					seen[n] = true
+					selected = append(selected, items[n-1])
+				}
+			}
+			continue
+		}
+
+		// Single number
+		n, err := strconv.Atoi(part)
+		if err != nil || n < 1 || n > len(items) {
+			fmt.Printf("  Skipping invalid selection %q\n", part)
+			continue
+		}
+		if !seen[n] {
+			seen[n] = true
+			selected = append(selected, items[n-1])
+		}
+	}
+	return selected
 }

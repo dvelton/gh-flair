@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -136,11 +135,34 @@ func getGHToken() (string, error) {
 	if token := os.Getenv("GH_TOKEN"); token != "" {
 		return strings.TrimSpace(token), nil
 	}
-	out, err := exec.Command("gh", "auth", "token").Output()
-	if err != nil {
-		return "", fmt.Errorf("gh auth token: %w", err)
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return strings.TrimSpace(token), nil
 	}
-	return strings.TrimSpace(string(out)), nil
+	// Read token directly from gh CLI config file
+	cfgDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("find home dir: %w", err)
+	}
+	for _, path := range []string{
+		cfgDir + "/.config/gh/hosts.yml",
+		cfgDir + "/.config/gh/hosts.yaml",
+	} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		// Simple parse: look for oauth_token line
+		for _, line := range strings.Split(string(data), "\n") {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "oauth_token:") {
+				token := strings.TrimSpace(strings.TrimPrefix(trimmed, "oauth_token:"))
+				if token != "" {
+					return token, nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("no GitHub token found: set GH_TOKEN or run 'gh auth login'")
 }
 
 func resolveRepos(cfg *config.Config, st *store.Store) ([]model.Repo, error) {

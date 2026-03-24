@@ -38,7 +38,7 @@ func (f *SponsorsFetcher) Fetch(ctx context.Context, repos []model.Repo, since t
 
 		done := false
 		for _, node := range nodes {
-			if node.CreatedAt.Before(since) {
+			if node.Timestamp.Before(since) {
 				done = true
 				break
 			}
@@ -46,11 +46,11 @@ func (f *SponsorsFetcher) Fetch(ctx context.Context, repos []model.Repo, since t
 				continue
 			}
 			events = append(events, model.Event{
-				ID:        fmt.Sprintf("sponsor-%s-%d", node.Sponsor.Login, node.CreatedAt.Unix()),
+				ID:        fmt.Sprintf("sponsor-%s-%d", node.Sponsor.Login, node.Timestamp.Unix()),
 				Kind:      model.EventSponsor,
 				Title:     fmt.Sprintf("%s became a sponsor", node.Sponsor.Login),
 				Actor:     node.Sponsor.Login,
-				OccuredAt: node.CreatedAt,
+				OccuredAt: node.Timestamp,
 				CreatedAt: time.Now(),
 				Meta: map[string]string{
 					"action":       node.Action,
@@ -70,7 +70,7 @@ func (f *SponsorsFetcher) Fetch(ctx context.Context, repos []model.Repo, since t
 
 type sponsorNode struct {
 	Action    string    `json:"action"`
-	CreatedAt time.Time `json:"createdAt"`
+	Timestamp time.Time `json:"timestamp"`
 	Sponsor   struct {
 		Login string `json:"login"`
 		Name  string `json:"name"`
@@ -100,7 +100,7 @@ query($cursor: String) {
     sponsorsActivities(first: 50, after: $cursor, orderBy: {field: TIMESTAMP, direction: DESC}) {
       nodes {
         action
-        createdAt
+        timestamp
         sponsor {
           ... on User { login name }
           ... on Organization { login name }
