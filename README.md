@@ -152,16 +152,6 @@ settings:
   quiet: false
 ```
 
-## Design Principles
-
-1. **News feed, not dashboard.** Moments, not charts.
-2. **Celebrate, don't analyze.** No line charts, no funnels.
-3. **No bad news.** Highlight reel only.
-4. **Deltas over totals.** "+12 since yesterday" over "4,847 total."
-5. **Pull-based.** You check when you want the mood boost.
-6. **Fast.** Output in under 2 seconds.
-7. **Never empty.** Always shows something positive.
-
 ## License
 
 MIT
