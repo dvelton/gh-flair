@@ -4,21 +4,23 @@ Your repos' highlight reel.
 
 A `gh` CLI extension that surfaces the good news from your open source projects — new stars, grateful users, first-time contributors, sponsor events, download milestones, and Hacker News mentions. The signals that make maintaining worth it, pulled out of the noise and presented when you open your terminal.
 
-## Install
-
-```
-gh extension install dvelton/gh-flair
-```
+## Getting Started
 
 Requires the [GitHub CLI](https://cli.github.com/) (`gh`) to be installed and authenticated.
 
-## Usage
-
+```bash
+gh extension install dvelton/gh-flair
+gh flair init    # pick which repos to track
+gh flair         # get your highlight reel
 ```
-gh flair
-```
 
-That's it. Run it, get a highlight reel of good things that happened since you last checked:
+`gh flair init` auto-discovers your repos and lets you choose which ones to track. You can select individual numbers (`1,3,5`), ranges (`1-10`), or `all`. It also lets you optionally map repos to package registries (npm, PyPI, crates.io) for download tracking.
+
+If you skip init and run `gh flair` directly, it will offer to run setup for you.
+
+On first run after setup, `gh flair` automatically looks back 30 days to give you a rich initial highlight reel.
+
+## Example Output
 
 ```
   ✦ gh flair — since yesterday 6:42 AM
@@ -51,16 +53,6 @@ That's it. Run it, get a highlight reel of good things that happened since you l
   🔥 Streaks
     cool-project: starred 34 days in a row
 ```
-
-## Setup
-
-```
-gh flair init
-```
-
-Interactive setup that auto-discovers your repos and lets you pick which ones to track. Supports individual numbers (`1,3,5`), ranges (`1-10`), or `all` to track everything. Optionally map repos to package registries (npm, PyPI, crates.io) for download tracking.
-
-On first run after setup, `gh flair` automatically looks back 30 days to give you a rich initial highlight reel.
 
 ## Commands
 

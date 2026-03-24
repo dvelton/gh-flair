@@ -100,7 +100,14 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(repos) == 0 {
-		fmt.Fprintln(os.Stderr, "No repos configured. Run 'gh flair init' to get started.")
+		fmt.Println("No repos configured yet.")
+		fmt.Print("Run setup now? [Y/n] ")
+		var answer string
+		fmt.Scanln(&answer)
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer == "" || answer == "y" || answer == "yes" {
+			return runInit(cmd, nil)
+		}
 		return nil
 	}
 
