@@ -58,7 +58,9 @@ That's it. Run it, get a highlight reel of good things that happened since you l
 gh flair init
 ```
 
-Interactive setup that auto-discovers your repos and lets you pick which ones to track. Optionally map repos to package registries (npm, PyPI, crates.io) for download tracking.
+Interactive setup that auto-discovers your repos and lets you pick which ones to track. Supports individual numbers (`1,3,5`), ranges (`1-10`), or `all` to track everything. Optionally map repos to package registries (npm, PyPI, crates.io) for download tracking.
+
+On first run after setup, `gh flair` automatically looks back 30 days to give you a rich initial highlight reel.
 
 ## Commands
 
@@ -79,6 +81,14 @@ Interactive setup that auto-discovers your repos and lets you pick which ones to
 |---|---|
 | `--quiet`, `-q` | Compact one-line output |
 | `--repo`, `-r` | Filter to a single repo |
+| `--since` | Look back period: `7d`, `30d`, `90d`, `1y` |
+
+Examples:
+
+```bash
+gh flair --since 90d              # highlights from the last 90 days
+gh flair --since 1y --repo owner/repo  # one repo, one year
+```
 
 ## Shell Integration
 
