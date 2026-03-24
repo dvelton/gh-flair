@@ -188,6 +188,9 @@ func renderHN(summaries []model.RepoSummary) string {
 func renderStreaks(streaks []model.Streak) string {
 	var lines []string
 	for _, st := range streaks {
+		if st.CurrentDays == 0 {
+			continue
+		}
 		best := ""
 		if st.BestDays > st.CurrentDays {
 			best = styleDim.Render(fmt.Sprintf(" (best: %d)", st.BestDays))

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dvelton/gh-flair/internal/model"
@@ -76,6 +77,7 @@ func (f *HNFetcher) fetchRepo(ctx context.Context, repo model.Repo, since time.T
 	}
 
 	var events []model.Event
+	repoPath := fmt.Sprintf("github.com/%s/%s", repo.Owner, repo.Name)
 	for _, hit := range result.Hits {
 		if hit.CreatedAt.Before(since) {
 			continue
@@ -83,6 +85,10 @@ func (f *HNFetcher) fetchRepo(ctx context.Context, repo model.Repo, since time.T
 		hitURL := hit.URL
 		if hitURL == "" {
 			hitURL = hit.StoryURL
+		}
+		// Verify the URL actually contains the exact repo path (Algolia does fuzzy matching)
+		if !containsRepoPath(hitURL, repoPath) {
+			continue
 		}
 		events = append(events, model.Event{
 			ID:        fmt.Sprintf("hn-%s-%s", repo.FullName, hit.ObjectID),
@@ -103,4 +109,21 @@ func (f *HNFetcher) fetchRepo(ctx context.Context, repo model.Repo, since time.T
 		})
 	}
 	return events, nil
+}
+
+// containsRepoPath checks if a URL contains the exact GitHub repo path.
+// Matches github.com/owner/repo at a path boundary (followed by /, ?, #, or end of string).
+func containsRepoPath(rawURL, repoPath string) bool {
+	lower := strings.ToLower(rawURL)
+	repoLower := strings.ToLower(repoPath)
+	idx := strings.Index(lower, repoLower)
+	if idx < 0 {
+		return false
+	}
+	end := idx + len(repoLower)
+	if end >= len(lower) {
+		return true
+	}
+	next := lower[end]
+	return next == '/' || next == '?' || next == '#' || next == ' '
 }
