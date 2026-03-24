@@ -81,19 +81,50 @@ func (a *Analyzer) BuildHighlightReel(repos []model.Repo, events []model.Event, 
 func (a *Analyzer) buildRepoSummary(repo model.Repo, events []model.Event, since time.Time) (model.RepoSummary, error) {
 	summary := model.RepoSummary{Repo: repo}
 
-	// Collect current star/fork counts from the latest snapshot.
+	// Try to get current star/fork counts from star event metadata first
+	// (the fetcher stores total_stars on each star event), then fall back to snapshot.
+	for _, e := range events {
+		if e.Kind == model.EventStar && e.Meta != nil {
+			if v, ok := e.Meta["total_stars"]; ok {
+				var n int
+				if _, err := fmt.Sscanf(v, "%d", &n); err == nil && n > summary.StarsTotal {
+					summary.StarsTotal = n
+				}
+			}
+		}
+	}
+
+	// If we didn't get totals from events, try the latest snapshot.
 	latest, err := a.store.GetLatestSnapshot(repo.ID)
 	if err != nil {
 		return summary, err
 	}
 	if latest != nil {
-		summary.StarsTotal = latest.Stars
-		summary.ForksTotal = latest.Forks
+		if summary.StarsTotal == 0 {
+			summary.StarsTotal = latest.Stars
+		}
+		if summary.ForksTotal == 0 {
+			summary.ForksTotal = latest.Forks
+		}
 	}
 
-	// Deltas against the snapshot just before `since`.
-	summary.StarsDelta = CalcStarDelta(a.store, repo.ID, summary.StarsTotal, since)
-	summary.ForksDelta = CalcForkDelta(a.store, repo.ID, summary.ForksTotal, since)
+	// Calculate deltas. If we have a prior snapshot, use snapshot comparison.
+	// If not (first run), count individual star/fork events as the delta.
+	priorSnap, _ := a.store.GetSnapshotBefore(repo.ID, since)
+	if priorSnap != nil {
+		summary.StarsDelta = CalcStarDelta(a.store, repo.ID, summary.StarsTotal, since)
+		summary.ForksDelta = CalcForkDelta(a.store, repo.ID, summary.ForksTotal, since)
+	} else {
+		// First run: count individual events as the delta
+		for _, e := range events {
+			switch e.Kind {
+			case model.EventStar:
+				summary.StarsDelta++
+			case model.EventFork:
+				summary.ForksDelta++
+			}
+		}
+	}
 
 	// Bucket events by kind.
 	const notableThreshold = 500
