@@ -133,7 +133,6 @@ Bug reports, feature requests, security alerts, CI failures, issue backlogs, or 
 - Runs locally as a `gh` CLI extension (single Go binary)
 - Auth via your existing `gh auth` token — no additional setup
 - All state stored in a local SQLite database at `~/.config/gh-flair/flair.db`
-- No server, no account, no telemetry, no data leaves your machine
 - Config lives at `~/.config/gh-flair/config.yaml`
 
 ## Configuration
